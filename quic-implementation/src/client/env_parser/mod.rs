@@ -1,6 +1,10 @@
 use serde::Deserialize;
 use std::error::Error;
 
+fn default_requests() -> String {
+    String::from("")
+}
+
 #[derive(Deserialize, Debug)]
 struct EnvConfig {
     sslkeylogfile: String,
@@ -8,6 +12,7 @@ struct EnvConfig {
     logs: String,
     testcase: String,
     downloads: String,
+    #[serde(default="default_requests")]
     requests: String,
 }
 
