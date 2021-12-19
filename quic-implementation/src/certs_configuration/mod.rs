@@ -1,26 +1,51 @@
-use std::path;
-use anyhow::result;
-use rustls::{Certificate, CertificateChain, PrivateKey, PrivateKey};
+use rustls::{Certificate, PrivateKey};
+use std::error::Error;
+use std::{fs, path::Path};
 
-use quic_implementation::env_parser::Config;
+use super::env_parser::Config;
 
-fn parse_pem(cert: Vec<u8>, private_key: Vec<u8>) -> anyhow::Result<(Certificate, PrivateKey)> {
-    // Parse to certificate chain whereafter taking the first certifcater in this chain.
-    let cert = CertificateChain::from_pem(&cert)?
-        .iter()
-        .next()
-        .unwrap()
-        .clone();
-    let key = PrivateKey::from_pem(&private_key)?;
+pub fn parse_certificates(
+    config: &Config,
+) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
+    let certs_dir = Path::new(&config.certs);
+    println!("Certs are {}", config.certs);
+    let cert_path = certs_dir.join("cert.pem");
+    let key_path = certs_dir.join("key.pem");
 
-    Ok((Certificate::from(cert), key))
+    let (cert_chain, key) = fs::read(&cert_path).and_then(|x| Ok((x, fs::read(&key_path)?)))?;
+    parse_pem(cert_chain, key)
 }
 
-fn parse_certificates(config: &Config) -> anyhow::Result<(Certificate, PrivateKey)> {
-    let certs_dir = path::Path(&config.certs);
-    let cert_path = certs_dir.join("cert.pem").to_str();
-    let key_path = certs_dir.join("key.pem").to_str();
+fn parse_pem(
+    cert: Vec<u8>,
+    private_key: Vec<u8>,
+) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
+    let parsed_key = parse_pem_key(private_key)?;
+    let parsed_certs = parse_pem_cert(cert)?;
 
-    let (cert, key) = fs::read(&cert_path).and_then(|x| Ok((x, fs::read(&key_path)?)))?;
-    parse_pem(cert, key)
+    Ok((parsed_certs, parsed_key))
+}
+
+fn parse_pem_cert(cert: Vec<u8>) -> Result<Vec<Certificate>, Box<dyn Error>> {
+    let v: Vec<Certificate> = rustls_pemfile::certs(&mut &*cert)?
+        .into_iter()
+        .map(rustls::Certificate)
+        .collect();
+
+    Ok(v)
+}
+
+fn parse_pem_key(key: Vec<u8>) -> Result<PrivateKey, Box<dyn Error>> {
+    let pkcs8: Vec<Vec<u8>> = rustls_pemfile::pkcs8_private_keys(&mut &*key)?;
+    let key = match pkcs8.into_iter().next() {
+        Some(x) => PrivateKey(x),
+        None => {
+            let rsa = rustls_pemfile::rsa_private_keys(&mut &*key)?;
+            match rsa.into_iter().next() {
+                Some(x) => PrivateKey(x),
+                None => panic!("no private key found"),
+            }
+        }
+    };
+    Ok(key)
 }
