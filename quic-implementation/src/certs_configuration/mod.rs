@@ -1,12 +1,20 @@
-use rustls::{Certificate, PrivateKey};
+use rustls::{Certificate, PrivateKey, ServerConfig};
 use std::error::Error;
 use std::{fs, path::Path};
 
 use super::env_parser::Config;
 
-pub fn parse_certificates(
-    config: &Config,
-) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
+pub fn get_certificate_config(config: &Config) -> Result<ServerConfig, Box<dyn Error>> {
+    let (certs, key) = parse_certificates(config)?;
+
+    let server_crypto = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
+        .with_single_cert(certs, key)?;
+    Ok(server_crypto)
+}
+
+fn parse_certificates(config: &Config) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
     let certs_dir = Path::new(&config.certs);
     println!("Certs are {}", config.certs);
     let cert_path = certs_dir.join("cert.pem");

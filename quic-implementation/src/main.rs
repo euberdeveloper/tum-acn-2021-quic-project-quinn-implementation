@@ -5,8 +5,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::new();
     println!("Config is: {:#?}", config);
 
-    let res = certs_configuration::parse_certificates(&config)?;
-    println!("{:#?}", res);
+    let server_config = certs_configuration::get_certificate_config(&config)?;
+    println!("haho");
 
     Ok(())
 }
