@@ -41,12 +41,34 @@ pub async fn do_client(config: &Config) -> Result<(), Box<dyn Error>> {
 
     let request = format!("GET {}\r\n", url.path());
     let start = Instant::now();
-    let rebind = false;
     let host = url.host_str().unwrap();
     eprintln!("connecting to {} at {}", host, remote);
 
     let new_conn = endpoint.connect(remote, host)?.await?;
     eprintln!("connected at {:?}", start.elapsed());
+
+    let quinn::NewConnection {
+        connection: conn, ..
+    } = new_conn;
+    let (mut send, recv) = conn.open_bi().await?;
+
+    send.write_all(request.as_bytes()).await?;
+    send.finish().await?;
+    let response_start = Instant::now();
+    eprintln!("request sent at {:?}", response_start - start);
+    let resp = recv.read_to_end(usize::max_value()).await?;
+    let duration = response_start.elapsed();
+    eprintln!(
+        "response received in {:?} - {} KiB/s",
+        duration,
+        resp.len() as f32 / (duration_secs(&duration) * 1024.0)
+    );
+    io::stdout().write_all(&resp).unwrap();
+    io::stdout().flush().unwrap();
+    conn.close(0u32.into(), b"done");
+
+    // Give the server a fair chance to receive the close packet
+    endpoint.wait_idle().await;
 
     Ok(())
 }
@@ -57,6 +79,10 @@ fn get_urls(config: &Config) -> Vec<Url> {
         .iter()
         .map(|url| Url::parse(url).unwrap())
         .collect()
+}
+
+fn duration_secs(x: &Duration) -> f32 {
+    x.as_secs() as f32 + x.subsec_nanos() as f32 * 1e-9
 }
 
 struct MyCustomVerifier;
