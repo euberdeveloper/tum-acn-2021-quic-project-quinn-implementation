@@ -1,6 +1,6 @@
 pub mod certs_configuration;
 pub mod env_parser;
-pub mod server_setup;
+pub mod do_server;
 
 use env_parser::Config;
 
@@ -9,7 +9,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     println!("Config is: {:#?}", config);
 
     let server_crypto = certs_configuration::get_server_crypto(&config)?;
-    server_setup::start_server(&config, server_crypto)?;
+    do_server::do_server(&config, server_crypto)?;
 
     Ok(())
 }

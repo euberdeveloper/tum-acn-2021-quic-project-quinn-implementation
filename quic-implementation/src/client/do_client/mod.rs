@@ -4,14 +4,11 @@ use rustls::{Certificate, ServerName};
 use std::time::SystemTime;
 use std::{
     error::Error,
-    fs,
     io::{self, Write},
     net::ToSocketAddrs,
-    path::PathBuf,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tracing::{error, info};
 use url::Url;
 
 use super::super::commons;
