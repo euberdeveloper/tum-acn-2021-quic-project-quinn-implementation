@@ -616,6 +616,7 @@ dependencies = [
  "bytes",
  "envy",
  "futures",
+ "futures-util",
  "h3",
  "http",
  "quinn",

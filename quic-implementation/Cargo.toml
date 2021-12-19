@@ -8,6 +8,7 @@ anyhow = "1.0.22"
 bytes = "1"
 envy = "0.4"
 futures = "0.3"
+futures-util = {version = "0.3.11", default-features = false, features = ["io"]}
 h3 = {git = "https://github.com/hyperium/h3"}
 http = "0.2"
 quinn = "0.8.0"
@@ -23,3 +24,11 @@ tokio-stream = "0.1"
 tracing = "0.1.10"
 tracing-subscriber = {version = "0.2.7", default-features = false, features = ["fmt", "ansi", "env-filter", "chrono", "tracing-log"]}
 webpki = "0.22"
+
+[[bin]]
+name = "server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "client"
+path = "src/bin/client.rs"
