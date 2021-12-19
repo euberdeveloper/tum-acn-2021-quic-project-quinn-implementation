@@ -4,6 +4,7 @@ use std::{fs, path::Path};
 
 use rustls::{Certificate, PrivateKey, ServerConfig};
 
+use super::super::commons;
 use super::env_parser::Config;
 
 pub fn get_server_crypto(config: &Config) -> Result<ServerConfig, Box<dyn Error>> {
@@ -14,13 +15,11 @@ pub fn get_server_crypto(config: &Config) -> Result<ServerConfig, Box<dyn Error>
         .with_no_client_auth()
         .with_single_cert(certs, key)?;
 
-    server_crypto.alpn_protocols = ALPN_QUIC_HTTP.iter().map(|&x| x.into()).collect();
+    server_crypto.alpn_protocols = commons::ALPN_QUIC_HTTP.iter().map(|&x| x.into()).collect();
     server_crypto.key_log = Arc::new(rustls::KeyLogFile::new());
 
     Ok(server_crypto)
 }
-
-const ALPN_QUIC_HTTP: &[&[u8]] = &[b"hq-29"];
 
 fn parse_certificates(config: &Config) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
     let certs_dir = Path::new(&config.certs);
