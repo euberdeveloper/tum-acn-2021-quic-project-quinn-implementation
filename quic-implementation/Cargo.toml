@@ -1,7 +1,9 @@
-[package]
-name = "quic-implementation"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "h3",
+    "h3-quinn",
 
-[dependencies]
-quinn = "0.8.0"
+    # Internal
+    "examples",
+    "tests/h3-tests",
+]
