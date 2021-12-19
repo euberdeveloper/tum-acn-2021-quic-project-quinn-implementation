@@ -1,3 +1,6 @@
+use quic_implementation::env_parser::QuicImplementationConfig;
+
 fn main() {
-    println!("Hello, world!");
+    let config = QuicImplementationConfig::new();
+    println!("{:#?}", config);
 }
