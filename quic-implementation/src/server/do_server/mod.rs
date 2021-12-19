@@ -3,7 +3,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::sync::Arc;
 use std::{
-    ascii, fs, io,
+    ascii, fs,
     path::{self, PathBuf},
     str,
 };
@@ -63,20 +63,10 @@ fn get_listen_address(config: &Config) -> SocketAddr {
 
 async fn handle_connection(root: Arc<Path>, conn: quinn::Connecting) -> () {
     let quinn::NewConnection {
-        connection,
+        connection: _,
         mut bi_streams,
         ..
     } = conn.await.unwrap();
-    // let span = info_span!(
-    //     "connection",
-    //     remote = %connection.remote_address(),
-    //     protocol = %connection
-    //         .handshake_data()
-    //         .unwrap()
-    //         .downcast::<quinn::crypto::rustls::HandshakeData>().unwrap()
-    //         .protocol
-    //         .map_or_else(|| "<none>".into(), |x| String::from_utf8_lossy(&x).into_owned())
-    // );
     async {
         while let Some(stream) = bi_streams.next().await {
             let stream = match stream {
@@ -109,15 +99,12 @@ async fn handle_request(
         let part = ascii::escape_default(x).collect::<Vec<_>>();
         escaped.push_str(str::from_utf8(&part).unwrap());
     }
-    // Execute the request
     let resp = process_get(&root, &req).unwrap_or_else(|e| {
         format!("failed to process request: {}\n", e).into_bytes()
     });
-    // Write the response
     send.write_all(&resp)
         .await
         .map_err(|e| anyhow!("failed to send response: {}", e))?;
-    // Gracefully terminate the stream
     send.finish()
         .await
         .map_err(|e| anyhow!("failed to shutdown stream: {}", e))?;

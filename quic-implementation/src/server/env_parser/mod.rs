@@ -50,6 +50,11 @@ impl Config {
     /// It fetches the envinromnent and returns a Config struct.
     pub fn new() -> Config {
         let config = fetch_env().expect("Error in parsing the environment");
+        // TODO: do a better validation by adding test cases funcs
+        if config.testcase != "handshake" {
+            println!("exited with code 127");
+            std::process::exit(127);
+        }
         // TODO: add validation of the config
         Config {
             sslkeylogfile: config.sslkeylogfile,
