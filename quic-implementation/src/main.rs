@@ -1,6 +1,6 @@
-use quic_implementation::env_parser::QuicImplementationConfig;
+use quic_implementation::env_parser::Config;
 
 fn main() {
-    let config = QuicImplementationConfig::new();
-    println!("{:#?}", config);
+    let config = Config::new();
+    println!("{:#?}", config.logs);
 }
