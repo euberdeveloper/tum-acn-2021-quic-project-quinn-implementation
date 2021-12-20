@@ -1,6 +1,7 @@
 use futures::executor::block_on;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let future = quic_implementation::client::run_client();
     match block_on(future) {
         Ok(_) => {}

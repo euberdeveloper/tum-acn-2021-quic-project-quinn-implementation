@@ -10,7 +10,7 @@ struct EnvConfig {
     www: String,
     certs: String,
     ip: String,
-    port: String
+    port: u16
 }
 
 fn fetch_env() -> Result<EnvConfig, Box<dyn Error>> {
@@ -43,7 +43,7 @@ pub struct Config {
     /// The IP the server has to listen on.
     pub ip: String,
     /// The port the server has to listen on.
-    pub port: String
+    pub port: u16
 }
 
 impl Config {
