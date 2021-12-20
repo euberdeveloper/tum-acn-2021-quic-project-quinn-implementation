@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::path::Path;
 
 use futures::future;
 use h3_quinn::quinn;
@@ -54,6 +55,9 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), Box<dyn std::error::Error>>(())
     };
 
+    let downloads = config.downloads.clone();
+    let requested_path = String::from(dest.path());
+
     let request = async move {
         info!("Sending request ...");
 
@@ -68,8 +72,12 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         info!("Response: {:?} {}", resp.version(), resp.status());
         info!("Headers: {:#?}", resp.headers());
 
+        let downloads_path = Path::new(&downloads);
+        let requested_path = requested_path.split_at(1).1;
+        let requested_path = downloads_path.join(requested_path);
+
         while let Some(chunk) = stream.recv_data().await? {
-            let mut out = tokio::io::stdout();
+            let mut out = tokio::fs::File::create(&requested_path).await?;
             out.write_all(&chunk).await.expect("write_all");
             out.flush().await.expect("flush");
         }
