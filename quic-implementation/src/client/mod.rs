@@ -3,13 +3,14 @@ use std::sync::Arc;
 use futures::future;
 use h3_quinn::quinn;
 use tokio::{self, io::AsyncWriteExt};
+use tracing::info;
 
 mod certs_configuration;
 mod env_parser;
 
 pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        // .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::FULL)
         .with_writer(std::io::stderr)
         .init();
@@ -34,7 +35,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         .next()
         .ok_or("dns found no addresses")?;
 
-    eprintln!("DNS Lookup for {:?}: {:?}", dest, addr);
+    info!("DNS Lookup for {:?}: {:?}", dest, addr);
 
     let client_crypto = certs_configuration::get_client_crypto()?;
     let client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
@@ -43,7 +44,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
     client_endpoint.set_default_client_config(client_config);
     let quinn_conn = h3_quinn::Connection::new(client_endpoint.connect(addr, auth.host())?.await?);
 
-    eprintln!("QUIC connected ...");
+    info!("QUIC connected ...");
 
     // generic h3
     let (mut driver, mut send_request) = h3::client::new(quinn_conn).await?;
@@ -54,18 +55,18 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let request = async move {
-        eprintln!("Sending request ...");
+        info!("Sending request ...");
 
         let req = http::Request::builder().uri(dest).body(())?;
 
         let mut stream = send_request.send_request(req).await?;
         stream.finish().await?;
 
-        eprintln!("Receiving response ...");
+        info!("Receiving response ...");
         let resp = stream.recv_response().await?;
 
-        eprintln!("Response: {:?} {}", resp.version(), resp.status());
-        eprintln!("Headers: {:#?}", resp.headers());
+        info!("Response: {:?} {}", resp.version(), resp.status());
+        info!("Headers: {:#?}", resp.headers());
 
         while let Some(chunk) = stream.recv_data().await? {
             let mut out = tokio::io::stdout();
