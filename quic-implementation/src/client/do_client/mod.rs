@@ -1,26 +1,40 @@
-use rustls::client::ServerCertVerified;
-use rustls::{Certificate, ServerName};
 use std::time::SystemTime;
 use std::{
     error::Error,
-    io::{self, Write},
     net::ToSocketAddrs,
     sync::Arc,
     time::{Duration, Instant},
 };
-use url::Url;
+
+use futures::future;
+use h3_quinn::quinn;
+use http::Uri;
+use rustls::client::ServerCertVerified;
+use rustls::{Certificate, ServerName};
+use tokio::{self, io::AsyncWriteExt};
 
 use super::super::commons;
 use super::env_parser::Config;
 
 #[tokio::main]
 pub async fn do_client(config: &Config) -> Result<(), Box<dyn Error>> {
-    let urls = get_urls(config);
-    let url = urls.get(0).unwrap();
-    let remote = (url.host_str().unwrap(), url.port().unwrap_or(4433))
-        .to_socket_addrs()?
-        .next()
-        .unwrap();
+    let uris = get_uris(config);
+    let dest = uris.get(0).unwrap();
+    if dest.scheme() != Some(&http::uri::Scheme::HTTPS) {
+        Err("destination scheme must be 'https'")?;
+    }
+
+    let auth = dest
+        .authority()
+        .ok_or("destination must have a host")?
+        .clone();
+
+    let port = auth.port_u16().unwrap_or(443);
+
+    let addr = match tokio::net::lookup_host((auth.host(), port)).await?.next() {
+        Some(addr) => addr,
+        None => (auth.host(), port).to_socket_addrs()?.next().unwrap(),
+    };
 
     let tls_config_builder = rustls::ClientConfig::builder()
         .with_safe_default_cipher_suites()
@@ -29,56 +43,86 @@ pub async fn do_client(config: &Config) -> Result<(), Box<dyn Error>> {
     let mut tls_config = tls_config_builder
         .with_custom_certificate_verifier(Arc::new(MyCustomVerifier))
         .with_no_client_auth();
+    tls_config.enable_early_data = true;
     tls_config.alpn_protocols = commons::ALPN_QUIC_HTTP.iter().map(|&x| x.into()).collect();
     let client_config = quinn::ClientConfig::new(Arc::new(tls_config));
 
-    let mut endpoint = quinn::Endpoint::client("[::]:0".parse().unwrap())?;
+    let mut endpoint = h3_quinn::quinn::Endpoint::client("[::]:0".parse().unwrap())?;
     endpoint.set_default_client_config(client_config);
 
-    let request = format!("GET {}\r\n", url.path());
     let start = Instant::now();
-    let host = url.host_str().unwrap();
-    eprintln!("connecting to {} at {}", host, remote);
+    let host = auth.host();
+    eprintln!("QUIC connecting to {} at {}", host, dest);
 
-    let new_conn = endpoint.connect(remote, host)?.await?;
-    eprintln!("connected at {:?}", start.elapsed());
+    let quinn_conn = h3_quinn::Connection::new(endpoint.connect(addr, host)?.await?);
+    eprintln!("QUIC connected at {:?}", start.elapsed());
 
-    let quinn::NewConnection {
-        connection: conn, ..
-    } = new_conn;
-    let (mut send, recv) = conn.open_bi().await?;
+    let (mut driver, mut send_request) = h3::client::new(quinn_conn).await?;
+    let drive = async move {
+        future::poll_fn(|cx| driver.poll_close(cx)).await?;
+        Ok::<(), Box<dyn std::error::Error>>(())
+    };
 
-    send.write_all(request.as_bytes()).await?;
-    send.finish().await?;
-    let response_start = Instant::now();
-    eprintln!("request sent at {:?}", response_start - start);
-    let resp = recv.read_to_end(usize::max_value()).await?;
-    let duration = response_start.elapsed();
-    eprintln!(
-        "response received in {:?} - {} KiB/s",
-        duration,
-        resp.len() as f32 / (duration_secs(&duration) * 1024.0)
-    );
-    io::stdout().write_all(&resp).unwrap();
-    io::stdout().flush().unwrap();
-    conn.close(0u32.into(), b"done");
+    let request = async move {
+        eprintln!("Sending request ...");
 
-    // Give the server a fair chance to receive the close packet
+        let req = http::Request::builder().uri(dest).body(())?;
+
+        let mut stream = send_request.send_request(req).await?;
+        stream.finish().await?;
+
+        eprintln!("Receiving response ...");
+        let resp = stream.recv_response().await?;
+
+        eprintln!("Response: {:?} {}", resp.version(), resp.status());
+        eprintln!("Headers: {:#?}", resp.headers());
+
+        while let Some(chunk) = stream.recv_data().await? {
+            let mut out = tokio::io::stdout();
+            out.write_all(&chunk).await.expect("write_all");
+            out.flush().await.expect("flush");
+        }
+        Ok::<_, Box<dyn std::error::Error>>(())
+    };
+
+    let (req_res, drive_res) = tokio::join!(request, drive);
+    req_res?;
+    drive_res?;
+
     endpoint.wait_idle().await;
+
+    // let quinn::NewConnection {
+    //     connection: conn, ..
+    // } = new_conn;
+    // let (mut send, recv) = conn.open_bi().await?;
+
+    // send.write_all(request.as_bytes()).await?;
+    // send.finish().await?;
+    // let response_start = Instant::now();
+    // eprintln!("request sent at {:?}", response_start - start);
+    // let resp = recv.read_to_end(usize::max_value()).await?;
+    // let duration = response_start.elapsed();
+    // eprintln!(
+    //     "response received in {:?} - {} KiB/s",
+    //     duration,
+    //     resp.len() as f32 / (duration_secs(&duration) * 1024.0)
+    // );
+    // io::stdout().write_all(&resp).unwrap();
+    // io::stdout().flush().unwrap();
+    // conn.close(0u32.into(), b"done");
+
+    // // Give the server a fair chance to receive the close packet
+    // endpoint.wait_idle().await;
 
     Ok(())
 }
 
-fn get_urls(config: &Config) -> Vec<Url> {
+fn get_uris(config: &Config) -> Vec<Uri> {
     config
         .requests
         .iter()
-        .map(|url| Url::parse(url).unwrap())
+        .map(|url| url.parse::<http::Uri>().unwrap())
         .collect()
-}
-
-fn duration_secs(x: &Duration) -> f32 {
-    x.as_secs() as f32 + x.subsec_nanos() as f32 * 1e-9
 }
 
 struct MyCustomVerifier;

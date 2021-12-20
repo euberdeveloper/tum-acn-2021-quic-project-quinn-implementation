@@ -11,10 +11,14 @@ pub fn get_server_crypto(config: &Config) -> Result<ServerConfig, Box<dyn Error>
     let (certs, key) = parse_certificates(config)?;
 
     let mut server_crypto = ServerConfig::builder()
-        .with_safe_defaults()
+        .with_safe_default_cipher_suites()
+        .with_safe_default_kx_groups()
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .unwrap()
         .with_no_client_auth()
         .with_single_cert(certs, key)?;
 
+    server_crypto.max_early_data_size = u32::MAX;
     server_crypto.alpn_protocols = commons::ALPN_QUIC_HTTP.iter().map(|&x| x.into()).collect();
     server_crypto.key_log = Arc::new(rustls::KeyLogFile::new());
 

@@ -342,6 +342,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "h3-quinn"
+version = "0.0.0"
+source = "git+https://github.com/hyperium/h3#d9285198f0559379e134ec35090ee087e762db62"
+dependencies = [
+ "bytes",
+ "futures",
+ "h3",
+ "quinn",
+ "quinn-proto",
+]
+
+[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -651,6 +663,7 @@ dependencies = [
  "futures",
  "futures-util",
  "h3",
+ "h3-quinn",
  "http",
  "quinn",
  "quinn-proto",

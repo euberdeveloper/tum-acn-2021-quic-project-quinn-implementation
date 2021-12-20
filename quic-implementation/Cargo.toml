@@ -10,6 +10,7 @@ envy = "0.4"
 futures = "0.3"
 futures-util = {version = "0.3.11", default-features = false, features = ["io"]}
 h3 = {git = "https://github.com/hyperium/h3"}
+h3-quinn = {git = "https://github.com/hyperium/h3"}
 http = "0.2"
 quinn = "0.8.0"
 quinn-proto = "0.8.0"
