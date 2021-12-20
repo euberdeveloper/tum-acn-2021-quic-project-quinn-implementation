@@ -2,5 +2,9 @@
 
 SCRIPTDIR=`dirname "$(readlink -f "$0")"`
 
-cd ${SCRIPTDIR}/quic-implementation
-cargo run --bin client
+${SCRIPTDIR}/quic-implementation/target/release/client > ${LOGS}/log.txt 2>&1
+
+retVal=$?
+if [ $retVal -eq 127 ]; then
+    echo "exited with code 127"
+fi
