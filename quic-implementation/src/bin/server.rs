@@ -4,7 +4,8 @@ use futures::executor::block_on;
 async fn main() {
     let future = quic_implementation::server::run_server();
     match block_on(future) {
-        Ok(_) => {}
+        Ok(_) => {
+        }
         Err(e) => {
             eprintln!("{}", e);
         }

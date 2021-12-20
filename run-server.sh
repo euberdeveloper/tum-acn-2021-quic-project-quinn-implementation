@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPTDIR=`dirname "$(readlink -f "$0")"`
-
+ls $CERTS
 ${SCRIPTDIR}/quic-implementation/target/release/server > ${LOGS}/log.txt 2>&1
 
 retVal=$?

@@ -28,7 +28,7 @@ pub fn get_server_crypto(config: &Config) -> Result<ServerConfig, Box<dyn Error>
 fn parse_certificates(config: &Config) -> Result<(Vec<Certificate>, PrivateKey), Box<dyn Error>> {
     let certs_dir = Path::new(&config.certs);
     let cert_path = certs_dir.join("cert.pem");
-    let key_path = certs_dir.join("key.pem");
+    let key_path = certs_dir.join("priv.key");
 
     let (cert_chain, key) = fs::read(&cert_path).and_then(|x| Ok((x, fs::read(&key_path)?)))?;
     parse_pem(cert_chain, key)

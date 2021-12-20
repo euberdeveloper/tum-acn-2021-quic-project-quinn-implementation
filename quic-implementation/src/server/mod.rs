@@ -12,7 +12,6 @@ use bytes::Bytes;
 use futures::StreamExt;
 use h3::{quic::BidiStream, server::RequestStream};
 use rustls::{Certificate, PrivateKey};
-use tracing::{debug, error, info, trace, trace_span, warn};
 
 mod certs_configuration;
 mod env_parser;
@@ -20,7 +19,7 @@ mod setup_logs;
 
 pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let config = env_parser::Config::new();
-    trace!("{:#?}", config);
+    println!("{:#?}", config);
 
     setup_logs::setup_logs(&config);
 
@@ -31,32 +30,32 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("[::]:{:}", port).parse()?;
     let (endpoint, mut incoming) = h3_quinn::quinn::Endpoint::server(server_config, addr)?;
 
-    info!(
+    println!(
         "Listening on port {:?}",
         endpoint.local_addr().unwrap().port()
     );
 
     while let Some(new_conn) = incoming.next().await {
-        trace_span!("New connection being attempted");
+        println!("New connection being attempted");
         let www = config.www.clone();
 
         tokio::spawn(async move {
             match new_conn.await {
                 Ok(conn) => {
-                    info!("New connection now established");
+                    println!("New connection now established");
 
                     let mut h3_conn = h3::server::Connection::new(h3_quinn::Connection::new(conn))
                         .await
                         .unwrap();
 
                     while let Some((req, stream)) = h3_conn.accept().await.unwrap() {
-                        info!("connection requested: {:#?}", req);
+                        println!("connection requested: {:#?}", req);
 
                         tokio::spawn(handle_request(www.clone(), req, stream));
                     }
                 }
                 Err(err) => {
-                    warn!("connecting client failed with error: {:?}", err);
+                    println!("connecting client failed with error: {:?}", err);
                 }
             }
         });
@@ -78,7 +77,7 @@ where
     let requested_file = uri.path();
     let (_, requested_file) = requested_file.split_at(1);
     let file_path = www_path.join(requested_file);
-    info!(
+    println!(
         "PORCAMERDOSAAAAAAAAAAAAAAAAAAAAAAAAAAA {}",
         file_path.to_str().unwrap()
     );
@@ -86,7 +85,7 @@ where
     let path_total = path_total.path();
 
     if !file_path.exists() {
-        error!("File not found: {:?}", file_path);
+        println!("File not found: {:?}", file_path);
 
         let response = http::Response::builder()
             .status(http::StatusCode::NOT_FOUND)
@@ -95,10 +94,10 @@ where
 
         match stream.send_response(response).await {
             Ok(_) => {
-                debug!("Response to connection successful");
+                println!("Response to connection successful");
             }
             Err(err) => {
-                error!("Unable to send response to connection peer: {:?}", err);
+                println!("Unable to send response to connection peer: {:?}", err);
             }
         }
     } else {
@@ -111,19 +110,19 @@ where
 
         match stream.send_response(response).await {
             Ok(_) => {
-                debug!("Response to connection successful");
+                println!("Response to connection successful");
             }
             Err(err) => {
-                error!("Unable to send response to connection peer: {:?}", err);
+                println!("Unable to send response to connection peer: {:?}", err);
             }
         }
 
         match stream.send_data(Bytes::from(file)).await {
             Ok(_) => {
-                info!("Response to connection successful");
+                println!("Response to connection successful");
             }
             Err(err) => {
-                error!("Unable to send response to connection peer: {:?}", err);
+                println!("Unable to send response to connection peer: {:?}", err);
             }
         }
     };
@@ -138,7 +137,7 @@ fn process_get(root: &Path, path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     match components.next() {
         Some(path::Component::RootDir) => {}
         _ => {
-            error!("path must be absolute");
+            println!("path must be absolute");
         }
     }
     for c in components {
@@ -147,7 +146,7 @@ fn process_get(root: &Path, path: &str) -> Result<Vec<u8>, Box<dyn Error>> {
                 real_path.push(x);
             }
             x => {
-                error!("illegal component in path: {:?}", x);
+                println!("illegal component in path: {:?}", x);
             }
         }
     }

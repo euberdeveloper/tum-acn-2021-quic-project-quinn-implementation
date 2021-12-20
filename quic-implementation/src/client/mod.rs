@@ -19,6 +19,8 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = env_parser::Config::new();
 
+    println!("There are {}", config.requests.len());
+
     for uri in config.requests {
         let dest = uri.parse::<http::Uri>()?;
 
@@ -41,7 +43,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         client_endpoint.set_default_client_config(client_config);
         let quinn_conn =
             h3_quinn::Connection::new(client_endpoint.connect(addr, "localhost")?.await?);
-            info!("QUIC connected ...");
+        info!("QUIC connected ...");
         // generic h3
         let (mut driver, mut send_request) = h3::client::new(quinn_conn).await?;
         let drive = async move {
@@ -62,18 +64,24 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
             let downloads_path = Path::new(&downloads);
             let requested_path = requested_path.split_at(1).1;
             let requested_path = downloads_path.join(requested_path);
+            info!("Requested file path is: {:#?}", requested_path);
+            let mut out = tokio::fs::File::create(&requested_path).await?;
             while let Some(chunk) = stream.recv_data().await? {
-                let mut out = tokio::fs::File::create(&requested_path).await?;
                 out.write_all(&chunk).await.expect("write_all");
-                out.flush().await.expect("flush");
             }
+            out.flush().await.expect("flush");
+            info!("File created");
+
             Ok::<_, Box<dyn std::error::Error>>(())
         };
         let (req_res, drive_res) = tokio::join!(request, drive);
         req_res?;
         drive_res?;
         client_endpoint.wait_idle().await;
+        info!("Finish request");
     }
+
+    info!("Finished  all requests");
 
     Ok(())
 }
