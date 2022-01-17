@@ -23,7 +23,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
 
     let testcase = config.testcase;
 
-    if testcase == "transportparameter" {
+    if vec!["transportparameter", "transfer"].iter().any(|&el| el == testcase) {
         let uri = config.requests[0].clone();
         let dest = uri.parse::<http::Uri>()?;
         if dest.scheme() != Some(&http::uri::Scheme::HTTPS) {
