@@ -21,6 +21,8 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("There are {}", config.requests.len());
 
+    let testcase = config.testcase;
+
     for uri in config.requests {
         let dest = uri.parse::<http::Uri>()?;
 
@@ -37,7 +39,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => (auth.host(), port).to_socket_addrs()?.next().unwrap(),
         };
         info!("DNS Lookup for {:?}: {:?}", dest, addr);
-        let client_crypto = certs_configuration::get_client_crypto()?;
+        let client_crypto = certs_configuration::get_client_crypto(&testcase)?;
         let client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
         let mut client_endpoint = h3_quinn::quinn::Endpoint::client("[::]:0".parse().unwrap())?;
         client_endpoint.set_default_client_config(client_config);

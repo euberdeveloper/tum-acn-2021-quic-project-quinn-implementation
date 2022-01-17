@@ -1,17 +1,26 @@
 use rustls::client::ServerCertVerified;
-use rustls::ClientConfig;
 use rustls::{Certificate, ServerName};
+use rustls::{ClientConfig, cipher_suite::TLS13_CHACHA20_POLY1305_SHA256};
 use std::error::Error;
 use std::sync::Arc;
 use std::time::SystemTime;
 
 use super::super::commons;
+use super::env_parser::Config;
 
-pub fn get_client_crypto() -> Result<ClientConfig, Box<dyn Error>> {
-    let tls_config_builder = ClientConfig::builder()
-        .with_safe_default_cipher_suites()
-        .with_safe_default_kx_groups()
-        .with_protocol_versions(&[&rustls::version::TLS13])?;
+pub fn get_client_crypto(testcase: &String) -> Result<ClientConfig, Box<dyn Error>> {
+    let tls_config_builder = if testcase == "chacha20"  {
+        let cipher_suites = [TLS13_CHACHA20_POLY1305_SHA256];
+        ClientConfig::builder()
+            .with_cipher_suites(&cipher_suites)
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])?
+    } else {
+        ClientConfig::builder()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])?
+    };
     let mut tls_config = tls_config_builder
         .with_custom_certificate_verifier(Arc::new(YesVerifier))
         .with_no_client_auth();

@@ -75,10 +75,6 @@ where
     let requested_file = uri.path();
     let (_, requested_file) = requested_file.split_at(1);
     let file_path = www_path.join(requested_file);
-    println!(
-        "PORCAMERDOSAAAAAAAAAAAAAAAAAAAAAAAAAAA {}",
-        file_path.to_str().unwrap()
-    );
     let path_total = req.uri().clone().into_parts().path_and_query.unwrap();
     let path_total = path_total.path();
 

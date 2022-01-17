@@ -2,6 +2,7 @@ use std::error::Error;
 use std::sync::Arc;
 use std::{fs, path::Path};
 
+use rustls::cipher_suite::TLS13_CHACHA20_POLY1305_SHA256;
 use rustls::{Certificate, PrivateKey, ServerConfig};
 
 use super::super::commons;
@@ -10,13 +11,24 @@ use super::env_parser::Config;
 pub fn get_server_crypto(config: &Config) -> Result<ServerConfig, Box<dyn Error>> {
     let (certs, key) = parse_certificates(config)?;
 
-    let mut server_crypto = rustls::ServerConfig::builder()
-        .with_safe_default_cipher_suites()
-        .with_safe_default_kx_groups()
-        .with_protocol_versions(&[&rustls::version::TLS13])
-        .unwrap()
-        .with_no_client_auth()
-        .with_single_cert(certs, key)?;
+    let mut server_crypto = if config.testcase == "chacha20" {
+        let cipher_suites = [TLS13_CHACHA20_POLY1305_SHA256];
+        rustls::ServerConfig::builder()
+            .with_cipher_suites(&cipher_suites)
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(certs, key)?
+    } else {
+        rustls::ServerConfig::builder()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups()
+            .with_protocol_versions(&[&rustls::version::TLS13])
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(certs, key)?
+    };
 
     server_crypto.max_early_data_size = u32::MAX;
     server_crypto.alpn_protocols = vec![commons::ALPN.into()];
