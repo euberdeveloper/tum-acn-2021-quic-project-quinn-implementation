@@ -2,8 +2,7 @@ use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
 use std::{
-    ascii, fs, io,
-    net::SocketAddr,
+    fs,
     path::{self, PathBuf},
     str,
 };
@@ -11,7 +10,6 @@ use std::{
 use bytes::Bytes;
 use futures::StreamExt;
 use h3::{quic::BidiStream, server::RequestStream};
-use rustls::{Certificate, PrivateKey};
 
 mod certs_configuration;
 mod env_parser;

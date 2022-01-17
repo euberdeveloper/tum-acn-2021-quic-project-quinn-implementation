@@ -48,8 +48,8 @@ impl Config {
     /// It fetches the envinromnent and returns a Config struct.
     pub fn new() -> Config {
         let config = fetch_env().expect("Error in parsing the environment");
-        // TODO: do a better validation by adding test cases funcs
-        if config.testcase != "handshake" {
+        let testcases = vec!["handshake", "transfer", "multihandshake", "versionnegotiation", "chacha20", "retry", "resumption", "zerortt", "transportparameter"];
+        if !testcases.into_iter().any(|el| String::from(el) == config.testcase) {
             println!("exited with code 127");
             std::process::exit(127);
         }
