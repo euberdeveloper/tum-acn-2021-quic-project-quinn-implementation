@@ -89,6 +89,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         client_endpoint.wait_idle().await;
         info!("Finish request");
     } else {
+        let client_crypto = certs_configuration::get_client_crypto(&testcase)?;
         for uri in config.requests {
             let dest = uri.parse::<http::Uri>()?;
             if dest.scheme() != Some(&http::uri::Scheme::HTTPS) {
@@ -104,8 +105,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
                 Err(_) => (auth.host(), port).to_socket_addrs()?.next().unwrap(),
             };
             info!("DNS Lookup for {:?}: {:?}", dest, addr);
-            let client_crypto = certs_configuration::get_client_crypto(&testcase)?;
-            let client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
+            let client_config = quinn::ClientConfig::new(Arc::new(client_crypto.clone()));
             let mut client_endpoint = h3_quinn::quinn::Endpoint::client("[::]:0".parse().unwrap())?;
             client_endpoint.set_default_client_config(client_config);
             let quinn_conn =
