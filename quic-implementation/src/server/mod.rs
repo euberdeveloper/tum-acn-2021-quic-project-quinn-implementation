@@ -28,6 +28,9 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap()
             .max_concurrent_bidi_streams(10_u8.into());
     }
+    if config.testcase == "retry" {
+        server_config.use_retry(true);
+    }
 
     let port = config.port;
     let addr = format!("[::]:{:}", port).parse()?;
