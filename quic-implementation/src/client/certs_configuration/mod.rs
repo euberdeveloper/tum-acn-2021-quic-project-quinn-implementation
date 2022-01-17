@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use super::super::commons;
-use super::env_parser::Config;
 
 pub fn get_client_crypto(testcase: &String) -> Result<ClientConfig, Box<dyn Error>> {
     let tls_config_builder = if testcase == "chacha20"  {

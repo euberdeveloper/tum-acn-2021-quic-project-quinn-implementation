@@ -22,7 +22,12 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     setup_logs::setup_logs(&config);
 
     let crypto = certs_configuration::get_server_crypto(&config)?;
-    let server_config = h3_quinn::quinn::ServerConfig::with_crypto(Arc::new(crypto));
+    let mut server_config = h3_quinn::quinn::ServerConfig::with_crypto(Arc::new(crypto));
+    if config.testcase == "transportparameter" {
+        Arc::get_mut(&mut server_config.transport)
+            .unwrap()
+            .max_concurrent_bidi_streams(10_u8.into());
+    }
 
     let port = config.port;
     let addr = format!("[::]:{:}", port).parse()?;
