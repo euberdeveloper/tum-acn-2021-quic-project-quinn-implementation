@@ -23,7 +23,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
 
     let testcase = config.testcase;
 
-    if vec!["transportparameter", "transfer"].iter().any(|&el| el == testcase) {
+    if vec!["transportparameter", "transfer", "optimize", "goodput"].iter().any(|&el| el == testcase) {
         let uri = config.requests[0].clone();
         let dest = uri.parse::<http::Uri>()?;
         if dest.scheme() != Some(&http::uri::Scheme::HTTPS) {
@@ -60,7 +60,6 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
                 let requested_path = String::from(dest.path());
                 let downloads = downloads.clone();
                 let mut send_request = send_request.clone();
-
                 info!("Sending request ...");
                 let req = http::Request::builder().uri(dest).body(())?;
                 let mut stream = send_request.send_request(req).await?;
@@ -78,6 +77,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
                     out.write_all(&chunk).await.expect("write_all");
                 }
                 out.flush().await.expect("flush");
+                panic!("diocan4");
                 info!("File created");
             }
             Ok::<_, Box<dyn std::error::Error>>(())
