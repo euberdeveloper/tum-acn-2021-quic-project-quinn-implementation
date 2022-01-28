@@ -5,9 +5,14 @@ fn default_requests() -> String {
     String::from("")
 }
 
+fn mucco() -> String {
+    String::from("")
+}
+
 #[derive(Deserialize, Debug)]
 struct EnvConfig {
     sslkeylogfile: String,
+    // #[serde(default = "mucco")]
     qlogdir: String,
     logs: String,
     testcase: String,
@@ -48,7 +53,7 @@ impl Config {
     /// It fetches the envinromnent and returns a Config struct.
     pub fn new() -> Config {
         let config = fetch_env().expect("Error in parsing the environment");
-        let testcases = vec!["handshake", "transfer", "multihandshake", "versionnegotiation", "chacha20", "retry", "resumption", "zerortt", "transportparameter"];
+        let testcases = vec!["handshake", "transfer", "multihandshake", "versionnegotiation", "chacha20", "retry", "resumption", "zerortt", "transportparameter", "goodput"];
         if !testcases.into_iter().any(|el| String::from(el) == config.testcase) {
             println!("exited with code 127");
             std::process::exit(127);
