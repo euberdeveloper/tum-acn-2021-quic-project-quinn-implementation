@@ -77,7 +77,6 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
                     out.write_all(&chunk).await.expect("write_all");
                 }
                 out.flush().await.expect("flush");
-                panic!("diocan4");
                 info!("File created");
             }
             Ok::<_, Box<dyn std::error::Error>>(())
