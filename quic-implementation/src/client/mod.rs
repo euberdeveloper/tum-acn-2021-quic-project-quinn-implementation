@@ -1,3 +1,4 @@
+use h3_quinn::VarInt;
 use std::net::ToSocketAddrs;
 use std::path::Path;
 use std::sync::Arc;
@@ -23,7 +24,10 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
 
     let testcase = config.testcase;
 
-    if vec!["transportparameter", "transfer", "optimize", "goodput"].iter().any(|&el| el == testcase) {
+    if vec!["transportparameter", "transfer", "optimize", "goodput"]
+        .iter()
+        .any(|&el| el == testcase)
+    {
         let uri = config.requests[0].clone();
         let dest = uri.parse::<http::Uri>()?;
         if dest.scheme() != Some(&http::uri::Scheme::HTTPS) {
@@ -40,7 +44,13 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         };
         info!("DNS Lookup for {:?}: {:?}", dest, addr);
         let client_crypto = certs_configuration::get_client_crypto(&testcase)?;
-        let client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
+        let mut client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
+        // let client_config_transport = Arc::get_mut(&mut client_config.transport).unwrap();
+        // client_config_transport.stream_receive_window(5120000u32.into());
+        // client_config_transport.receive_window(5120000u32.into());
+        // client_config_transport.packet_threshold(10);
+        // client_config_transport.datagram_receive_buffer_size(Some(5120000));
+        // client_config_transport.max_idle_timeout(Some(VarInt::from_u32(200).into()));
         let mut client_endpoint = h3_quinn::quinn::Endpoint::client("[::]:0".parse().unwrap())?;
         client_endpoint.set_default_client_config(client_config);
         let quinn_conn =
