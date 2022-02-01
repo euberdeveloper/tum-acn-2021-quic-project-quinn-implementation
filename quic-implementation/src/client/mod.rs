@@ -84,7 +84,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
                 info!("Requested file path is: {:#?}", requested_path);
                 let mut out = tokio::fs::File::create(&requested_path).await?;
                 while let Some(chunk) = stream.recv_data().await? {
-                    out.write_all(&chunk).await.expect("write_all");
+                    out.write(&chunk).await.expect("write");
                 }
                 out.flush().await.expect("flush");
                 info!("File created");
