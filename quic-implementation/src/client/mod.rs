@@ -1,4 +1,3 @@
-use h3_quinn::VarInt;
 use std::net::ToSocketAddrs;
 use std::path::Path;
 use std::sync::Arc;
@@ -44,7 +43,7 @@ pub async fn run_client() -> Result<(), Box<dyn std::error::Error>> {
         };
         info!("DNS Lookup for {:?}: {:?}", dest, addr);
         let client_crypto = certs_configuration::get_client_crypto(&testcase)?;
-        let mut client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
+        let client_config = quinn::ClientConfig::new(Arc::new(client_crypto));
         // let client_config_transport = Arc::get_mut(&mut client_config.transport).unwrap();
         // client_config_transport.stream_receive_window(5120000u32.into());
         // client_config_transport.receive_window(5120000u32.into());
